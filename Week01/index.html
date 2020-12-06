@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicTacToe</title>
+  <style>
+    .cell {
+      display: inline-flex;
+      height: 100px;
+      width: 100px;
+      background: #ccc;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #fff;
+      vertical-align: top;
+      font-size: 40px;
+      cursor: pointer;
+    }
+    #title{
+      font-size: large;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <span>
+    <!-- <div id='title'>n子棋</div> -->
+    <div id="board"></div>
+  </span>
+
+  <script>
+    let prevType = 2
+    const patternOption = {
+      row: 8,
+      col: 10
+    }
+    let consecutiveCount = 5  // 连续几个为胜利
+    let pattern = new Array(patternOption["row"])
+      .fill()
+      .map(() => (new Array(patternOption["col"]).fill(0)))
+    let typeShowMap = {
+      0: '',
+      1: '⭕️',
+      2: '❌'
+    }
+
+    const putPieces = (row, col) => {
+      if (pattern[row][col] !== 0) return
+      const currType = 3 - prevType
+      pattern[row][col] = currType
+      prevType = currType
+      const nextType = 3 - currType
+      renderBoard()
+      if (nextTypeWillWin(pattern, nextType)) {
+        alert('win:' + typeShowMap[nextType])
+      }
+    }
+
+    
+    const typeWillWin = (list, type, len) => {
+      let nextIndex = 0
+      let typeCount = 0
+      let blankCount = 0
+      if (list.length < len) return false
+      let startIndex = 0
+      while (nextIndex < list.length) {
+
+        if (nextIndex - len > startIndex) {
+          switch (list[nextIndex - len]) {
+            case type:
+              typeCount && typeCount--
+              break;
+            case 0:
+              blankCount && blankCount--
+              break;
+            default:
+              break;
+          }
+        }
+        if (list[nextIndex] === 0) {
+          blankCount += 1
+
+        } else if (list[nextIndex] === type) {
+          typeCount += 1
+        } else {
+          typeCount = 0
+          blankCount = 0
+          startIndex = nextIndex
+        }
+        if (typeCount + blankCount >= len) {
+          if (typeCount >= len - 1) {
+            return true
+          }
+          if(blankCount >= len) blankCount = len
+        }
+        nextIndex += 1
+      }
+      return false
+    }
+    // const aa = [0, 0,0,0, 2, 2, 2, 2, 0, 0, 0, 0]
+    // console.log()
+
+    
+    // y = -x 方向数据列表
+    const declivityLists = (pattern) => {
+      const res = []
+      for (let index = 0; index < patternOption["row"] + patternOption["col"] - 1; index++) {
+        const currList = []
+        let nextY = index< patternOption["row"]? index : patternOption["row"] - 1
+        let nextX = index< patternOption["row"]? 0 : index - (patternOption["row"] - 1)
+        while (nextY >= 0 && nextX < patternOption["col"]) {
+          currList.push(pattern[nextY][nextX])
+          nextX++
+          nextY--
+        }
+        res[index] = currList
+      }
+      return res
+    }
+    // y = x 方向数据列表
+    const acclivityLists = (pattern) => {
+      const res = []
+      for (let index = 0; index < patternOption["row"] + patternOption["col"] -1; index++) {
+        const currList = []
+        let nextY = index < patternOption["row"]? index : 0
+        let nextX = index < patternOption["row"]? 0 : index - (patternOption["row"] - 1)
+        while (nextY < patternOption["row"] && nextX < patternOption["col"]) {
+          currList.push(pattern[nextY][nextX])
+          nextX++
+          nextY++
+        }
+        res[index] = currList
+      }
+      return res
+    }
+    // 垂直方向数据列表
+    const verticalLists = (pattern) => {
+      const res = []
+      for (let col = 0; col < patternOption["col"]; col++) {
+        res[col] = []
+        for (let row = 0; row < patternOption["row"]; row++) {
+          res[col].push(pattern[row][col])
+        }
+      }
+      return res
+    }
+    // 水平方向数据列表
+    const horizontalLists = (pattern) => {
+      const res = []
+      for (let row = 0; row < patternOption["row"]; row++) {
+        res[row] = []
+        for (let col = 0; col < patternOption["col"]; col++) {
+          res[row].push(pattern[row][col])
+        }
+      }
+      return res
+    }
+
+    const nextTypeWillWin = (pattern, nextType) => {
+      const lists = [
+        ...declivityLists(pattern),
+        ...acclivityLists(pattern),
+        ...verticalLists(pattern),
+        ...horizontalLists(pattern),
+      ]
+      return lists.some((list) => {
+        return typeWillWin(list, nextType, consecutiveCount)
+      })
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    function renderBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = ''
+      for (let row = 0; row < patternOption["row"]; row++) {
+        for (let col = 0; col < patternOption["col"]; col++) {
+          const cell = document.createElement('span');
+          cell.classList.add('cell');
+          cell.innerText = typeShowMap[pattern[row][col]]
+          cell.addEventListener('click', () => {
+            putPieces(row, col)
+          });
+          board.appendChild(cell);
+        }
+        board.appendChild(document.createElement('br'))
+      }
+
+    }
+
+    renderBoard()
+  </script>
+</body>
+
+</html>
