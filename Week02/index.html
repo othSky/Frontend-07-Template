@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicTacToe</title>
+  <style>
+    .cell {
+      height: 10px;
+      width: 10px;
+
+      border-left: 1px solid #fff;
+      border-bottom: 1px solid #fff;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      vertical-align: top;
+      cursor: pointer;
+    }
+
+    .blank {
+      background: #ccc;
+    }
+
+    .test {
+      background: rgba(146, 116, 226, 0.514);
+    }
+
+    .path {
+      background: rgba(219, 49, 177, 0.514);
+    }
+
+    .draw {
+      background: #333;
+    }
+
+    #board {
+      line-height: 9px;
+    }
+  </style>
+</head>
+
+<body>
+  <button id="saveDraw">save</button>
+  <button id="goPath">go</button>
+  <button id="resetTar">重置起点终点</button>
+  <div id="board"></div>
+
+  <script>
+    let prevType = 2
+    const boardOption = {
+      row: 80,
+      col: 100
+    }
+    const typeShowClassMap = {
+      0: 'blank', // 空旷
+      1: 'draw', // 画的障碍物
+      2: 'test', // 尝试过的空旷
+      3: 'path', // 路径
+    }
+    const pathTarMap = {
+      start: '🔒',
+      end: '🔑',
+    }
+    const pathTarIndex = {
+      start: [],
+      end: [],
+    }
+    let consecutiveCount = 5 // 连续几个为胜利
+
+    const rowLen = boardOption["row"]
+    const colLen = boardOption["col"]
+
+
+    let boardData = localStorage.getItem('prevDraw') ? JSON.parse(localStorage.getItem('prevDraw')) : new Array(rowLen *
+      colLen).fill(0)
+    let mouseDown = false
+    let mouseDownIsClear = false
+    let mouseDownIsSetTar = false
+    let currentTar = 'start'
+    const board = document.getElementById('board')
+
+    let cellList = board.getElementsByClassName('cell')
+
+
+    const getRealIndex = (x, y) => x + y * colLen
+
+    function renderBoard() {
+      board.innerHTML = ''
+
+      for (let row = 0; row < rowLen; row++) {
+        for (let col = 0; col < colLen; col++) {
+          const cell = document.createElement('span')
+          const currentIndex = getRealIndex(col, row)
+          cell.classList.add('cell')
+          cell.classList.add(typeShowClassMap[boardData[currentIndex]])
+
+          if (pathTarIndex['start'].toString() === [col, row].toString()) cell.innerText = pathTarMap['start']
+          if (pathTarIndex['end'].toString() === [col, row].toString()) cell.innerText = pathTarMap['end']
+
+          cell.addEventListener('mousemove', (e) => {
+            if (mouseDown) {
+              boardData[currentIndex] = mouseDownIsClear ? 0 : 1
+              cell.classList.remove(...Object.values(typeShowClassMap))
+              cell.classList.add(typeShowClassMap[boardData[currentIndex]])
+            }
+          })
+          cell.addEventListener('click', (e) => {
+            if (mouseDownIsSetTar) {
+              pathTarIndex[currentTar] = [col, row]
+              currentTar === 'end' && (mouseDownIsSetTar = false)
+              currentTar = currentTar === 'start' ? 'end' : 'start'
+              renderBoard()
+            }
+          })
+          board.appendChild(cell);
+        }
+        board.appendChild(document.createElement('br'))
+      }
+
+      cellList = board.getElementsByClassName('cell')
+    }
+
+    renderBoard()
+
+    document.addEventListener('mousedown', e => {
+      if (mouseDownIsSetTar) {
+        mouseDown = false
+      } else {
+        mouseDown = true
+        // 右键清除
+        mouseDownIsClear = e.which === 3
+      }
+    })
+    document.addEventListener('mouseup', e => {
+      mouseDown = false
+    })
+    document.addEventListener('contextmenu', e => {
+      e.preventDefault()
+    })
+
+    document.getElementById('saveDraw').addEventListener('click', e => {
+      localStorage.setItem('prevDraw', JSON.stringify(boardData))
+    })
+    document.getElementById('goPath').addEventListener('click', e => {
+      boardData = boardData.map(item => item === 1 ? 1 : 0)
+      getPath(boardData, pathTarIndex['start'], pathTarIndex['end']).then(console.log)
+      // renderBoard()
+    })
+    document.getElementById('resetTar').addEventListener('click', e => {
+      mouseDownIsSetTar = true
+      renderBoard()
+    })
+
+
+
+
+    const sleep = (time) => new Promise(res => {
+      setTimeout(res, time)
+    })
+
+    const changeItemColor = (index, type) => {
+      const cell = cellList[index]
+      cell.classList.remove(...Object.values(typeShowClassMap))
+      cell.classList.add(typeShowClassMap[type])
+    }
+
+    async function getPath(map, start, end) {
+      const queue = [start]
+      const rMap = Object.create(map)
+
+      function insert(x, y, pre) {
+        if (x < 0 || x >= colLen || y < 0 || y >= rowLen) return
+        const currentIndex = getRealIndex(x, y)
+        if (rMap[currentIndex] !== 0) return
+        rMap[currentIndex] = pre
+        queue.push([x, y])
+
+        // changeItemColor(currentIndex, 2)
+      }
+
+      while (queue.length) {
+        const current = queue.shift()
+        let [x, y] = current
+        if (current.toString() === end.toString()) {
+          const pathLine = []
+          let prev = current
+          while (prev.toString() !== start.toString()) {
+            pathLine.push(prev)
+            const currentIndex = getRealIndex(...prev)
+            prev = rMap[currentIndex]
+            const prevIndex = getRealIndex(...prev)
+
+            await sleep(30)
+            changeItemColor(prevIndex, 3)
+          }
+          return pathLine
+        }
+
+        await insert(x - 1, y, [x, y])
+        await insert(x, y - 1, [x, y])
+        await insert(x + 1, y, [x, y])
+        await insert(x, y + 1, [x, y])
+
+        // 斜方向
+        // await insert(x - 1, y - 1, [x, y])
+        // await insert(x + 1, y - 1, [x, y])
+        // await insert(x + 1, y + 1, [x, y])
+        // await insert(x - 1, y + 1, [x, y])
+      }
+
+      return false
+    }
+  </script>
+</body>
+
+</html>
