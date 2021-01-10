@@ -210,14 +210,17 @@
       const queue = new Sorted([start], (a, b) => distance(a, end) - distance(b, end))
       const rMap = Object.create(map)
 
-      function insert(x, y, pre) {
+      async function insert(x, y, pre) {
         if (x < 0 || x >= colLen || y < 0 || y >= rowLen) return
         const currentIndex = getRealIndex(x, y)
+        // 可优化，当前点的上一个点，可能有多个，要离start最近的
         if (rMap[currentIndex] !== 0) return
         rMap[currentIndex] = pre
+
+        await sleep(5)
         queue.give([x, y])
 
-        // changeItemColor(currentIndex, 2)
+        changeItemColor(currentIndex, 2)
       }
 
       while (queue.length) {
